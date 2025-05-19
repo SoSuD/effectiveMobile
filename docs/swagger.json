@@ -1,0 +1,338 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API server for EffectiveMobile service",
+        "title": "EffectiveMobile API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/add_human": {
+            "put": {
+                "description": "Create a new human with auto-filled age, gender, nationality",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "humans"
+                ],
+                "summary": "Add human",
+                "parameters": [
+                    {
+                        "description": "Add Human request",
+                        "name": "human",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apiserver.addHumanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Human"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "error"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/delete_human": {
+            "delete": {
+                "description": "Delete a human record by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "humans"
+                ],
+                "summary": "Delete human",
+                "parameters": [
+                    {
+                        "description": "Delete Human request",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apiserver.deleteHumanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/get_humans": {
+            "get": {
+                "description": "Retrieve humans with optional filtering and pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "humans"
+                ],
+                "summary": "Get humans",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name filter",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Surname filter",
+                        "name": "surname",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patronymic filter",
+                        "name": "patronymic",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gender filter",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Nationality filter",
+                        "name": "nationality",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Minimum age filter",
+                        "name": "min_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum age filter",
+                        "name": "max_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Human"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/update_human": {
+            "patch": {
+                "description": "Update human fields by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "humans"
+                ],
+                "summary": "Update human",
+                "parameters": [
+                    {
+                        "description": "Update Human request",
+                        "name": "human",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apiserver.updateHumanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "apiserver.addHumanRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "имя\nrequired: true",
+                    "type": "string"
+                },
+                "patronymic": {
+                    "description": "отчество\nrequired: false",
+                    "type": "string"
+                },
+                "surname": {
+                    "description": "фамилия\nrequired: true",
+                    "type": "string"
+                }
+            }
+        },
+        "apiserver.deleteHumanRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "ID человека\nrequired: true",
+                    "type": "integer"
+                }
+            }
+        },
+        "apiserver.updateHumanRequest": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "description": "возраст\nrequired: false",
+                    "type": "integer"
+                },
+                "gender": {
+                    "description": "пол\nrequired: false",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID человека\nrequired: true",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "имя\nrequired: false",
+                    "type": "string"
+                },
+                "nationality": {
+                    "description": "национальность\nrequired: false",
+                    "type": "string"
+                },
+                "patronymic": {
+                    "description": "отчество\nrequired: false",
+                    "type": "string"
+                },
+                "surname": {
+                    "description": "фамилия\nrequired: false",
+                    "type": "string"
+                }
+            }
+        },
+        "model.Human": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nationality": {
+                    "type": "string"
+                },
+                "patronymic": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,247 @@
+basePath: /
+definitions:
+  apiserver.addHumanRequest:
+    properties:
+      name:
+        description: |-
+          имя
+          required: true
+        type: string
+      patronymic:
+        description: |-
+          отчество
+          required: false
+        type: string
+      surname:
+        description: |-
+          фамилия
+          required: true
+        type: string
+    type: object
+  apiserver.deleteHumanRequest:
+    properties:
+      id:
+        description: |-
+          ID человека
+          required: true
+        type: integer
+    type: object
+  apiserver.updateHumanRequest:
+    properties:
+      age:
+        description: |-
+          возраст
+          required: false
+        type: integer
+      gender:
+        description: |-
+          пол
+          required: false
+        type: string
+      id:
+        description: |-
+          ID человека
+          required: true
+        type: integer
+      name:
+        description: |-
+          имя
+          required: false
+        type: string
+      nationality:
+        description: |-
+          национальность
+          required: false
+        type: string
+      patronymic:
+        description: |-
+          отчество
+          required: false
+        type: string
+      surname:
+        description: |-
+          фамилия
+          required: false
+        type: string
+    type: object
+  model.Human:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      nationality:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API server for EffectiveMobile service
+  title: EffectiveMobile API
+  version: "1.0"
+paths:
+  /add_human:
+    put:
+      consumes:
+      - application/json
+      description: Create a new human with auto-filled age, gender, nationality
+      parameters:
+      - description: Add Human request
+        in: body
+        name: human
+        required: true
+        schema:
+          $ref: '#/definitions/apiserver.addHumanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Human'
+        "400":
+          description: Bad Request
+          schema:
+            type: error
+        "415":
+          description: Unsupported Media Type
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add human
+      tags:
+      - humans
+  /delete_human:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a human record by ID
+      parameters:
+      - description: Delete Human request
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/apiserver.deleteHumanRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "415":
+          description: Unsupported Media Type
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete human
+      tags:
+      - humans
+  /get_humans:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve humans with optional filtering and pagination
+      parameters:
+      - description: Name filter
+        in: query
+        name: name
+        type: string
+      - description: Surname filter
+        in: query
+        name: surname
+        type: string
+      - description: Patronymic filter
+        in: query
+        name: patronymic
+        type: string
+      - description: Gender filter
+        in: query
+        name: gender
+        type: string
+      - description: Nationality filter
+        in: query
+        name: nationality
+        type: string
+      - description: Minimum age filter
+        in: query
+        name: min_age
+        type: integer
+      - description: Maximum age filter
+        in: query
+        name: max_age
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Human'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get humans
+      tags:
+      - humans
+  /update_human:
+    patch:
+      consumes:
+      - application/json
+      description: Update human fields by ID
+      parameters:
+      - description: Update Human request
+        in: body
+        name: human
+        required: true
+        schema:
+          $ref: '#/definitions/apiserver.updateHumanRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "415":
+          description: Unsupported Media Type
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update human
+      tags:
+      - humans
+swagger: "2.0"
