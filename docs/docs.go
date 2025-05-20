@@ -27,11 +27,11 @@ const docTemplate = `{
                 "tags": [
                     "humans"
                 ],
-                "summary": "Add human",
+                "summary": "Create a human",
                 "parameters": [
                     {
-                        "description": "Add Human request",
-                        "name": "human",
+                        "description": "Add Human payload",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -47,19 +47,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "error"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                        "description": "name and surname required",
                         "schema": {
                             "type": "string"
                         }
@@ -260,15 +248,18 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "description": "имя\nrequired: true",
-                    "type": "string"
+                    "type": "string",
+                    "example": "John"
                 },
                 "patronymic": {
                     "description": "отчество\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Johnny"
                 },
                 "surname": {
                     "description": "фамилия\nrequired: true",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Doe"
                 }
             }
         },
@@ -277,7 +268,8 @@ const docTemplate = `{
             "properties": {
                 "id": {
                     "description": "ID человека\nrequired: true",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -286,31 +278,38 @@ const docTemplate = `{
             "properties": {
                 "age": {
                     "description": "возраст\nrequired: false",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 30
                 },
                 "gender": {
                     "description": "пол\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "male"
                 },
                 "id": {
                     "description": "ID человека\nrequired: true",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "name": {
                     "description": "имя\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "John"
                 },
                 "nationality": {
                     "description": "национальность\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "RU"
                 },
                 "patronymic": {
                     "description": "отчество\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Johnny"
                 },
                 "surname": {
                     "description": "фамилия\nrequired: false",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Doe"
                 }
             }
         },
@@ -318,25 +317,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 25
                 },
                 "gender": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "male"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "John"
                 },
                 "nationality": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "RU"
                 },
                 "patronymic": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Ivanovich"
                 },
                 "surname": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Doe"
                 }
             }
         }

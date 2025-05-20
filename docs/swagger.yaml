@@ -6,16 +6,19 @@ definitions:
         description: |-
           имя
           required: true
+        example: John
         type: string
       patronymic:
         description: |-
           отчество
           required: false
+        example: Johnny
         type: string
       surname:
         description: |-
           фамилия
           required: true
+        example: Doe
         type: string
     type: object
   apiserver.deleteHumanRequest:
@@ -24,6 +27,7 @@ definitions:
         description: |-
           ID человека
           required: true
+        example: 1
         type: integer
     type: object
   apiserver.updateHumanRequest:
@@ -32,53 +36,67 @@ definitions:
         description: |-
           возраст
           required: false
+        example: 30
         type: integer
       gender:
         description: |-
           пол
           required: false
+        example: male
         type: string
       id:
         description: |-
           ID человека
           required: true
+        example: 1
         type: integer
       name:
         description: |-
           имя
           required: false
+        example: John
         type: string
       nationality:
         description: |-
           национальность
           required: false
+        example: RU
         type: string
       patronymic:
         description: |-
           отчество
           required: false
+        example: Johnny
         type: string
       surname:
         description: |-
           фамилия
           required: false
+        example: Doe
         type: string
     type: object
   model.Human:
     properties:
       age:
+        example: 25
         type: integer
       gender:
+        example: male
         type: string
       id:
+        example: 1
         type: integer
       name:
+        example: John
         type: string
       nationality:
+        example: RU
         type: string
       patronymic:
+        example: Ivanovich
         type: string
       surname:
+        example: Doe
         type: string
     type: object
 host: localhost:8080
@@ -94,9 +112,9 @@ paths:
       - application/json
       description: Create a new human with auto-filled age, gender, nationality
       parameters:
-      - description: Add Human request
+      - description: Add Human payload
         in: body
-        name: human
+        name: body
         required: true
         schema:
           $ref: '#/definitions/apiserver.addHumanRequest'
@@ -108,18 +126,10 @@ paths:
           schema:
             $ref: '#/definitions/model.Human'
         "400":
-          description: Bad Request
-          schema:
-            type: error
-        "415":
-          description: Unsupported Media Type
+          description: name and surname required
           schema:
             type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Add human
+      summary: Create a human
       tags:
       - humans
   /delete_human:

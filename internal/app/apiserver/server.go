@@ -24,6 +24,13 @@ import (
 	"time"
 )
 
+const (
+	ErrJsonDecodeError        = "error decoding request"
+	ErrNameAndSurnameRequired = "name and surname required"
+	ErrInternalServer         = "internal server error"
+	//ErrUnsupportedMediaType   = "unsupported media type"
+)
+
 type server struct {
 	router      chi.Router
 	config      *Config
@@ -59,16 +66,15 @@ func (s *server) configureRouter() {
 }
 
 // addHuman adds a new human record
-// @Summary Add human
+// @Summary Create a human
 // @Description Create a new human with auto-filled age, gender, nationality
 // @Tags humans
-// @Accept json
-// @Produce json
-// @Param human body apiserver.addHumanRequest true "Add Human request"
+// @Accept application/json
+// @Produce application/json
+// @Param body body addHumanRequest true "Add Human payload"
 // @Success 201 {object} model.Human
-// @Failure 400 {error} err.Error() Bad Request
-// @Failure 415 {string} Content-Type must be application/json "Unsupported Media Type"
-// @Failure 500 {string} Internal server error "Internal Server Error"
+// @Failure 400 {object} string "name and surname required"
+// @Failure 500 {string} string "Internal Server Error"
 // @Router /add_human [put]
 func (s *server) addHuman() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -78,11 +84,12 @@ func (s *server) addHuman() http.HandlerFunc {
 		}
 		req := addHumanRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.logger.Info("error decoding request", zap.Error(err))
+			http.Error(w, ErrJsonDecodeError, http.StatusBadRequest)
 			return
 		}
 		if req.Name == "" || req.Surname == "" {
-			http.Error(w, "Name and surname are required", http.StatusBadRequest)
+			http.Error(w, ErrNameAndSurnameRequired, http.StatusBadRequest)
 			return
 		}
 		human := model.Human{
@@ -114,7 +121,9 @@ func (s *server) addHuman() http.HandlerFunc {
 			}
 			select {
 			case ageChan <- resp.Age:
+				s.logger.Info("agify Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
+				s.logger.Info("agify Get Timeout")
 				return
 			}
 		}()
@@ -135,12 +144,13 @@ func (s *server) addHuman() http.HandlerFunc {
 			}
 			select {
 			case genderChan <- gender:
+				s.logger.Info("genderize Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
+				s.logger.Info("genderize Get Timeout")
 				return
 			}
 		}()
 
-		// Nationality goroutine
 		go func() {
 			defer wg.Done()
 			resp, err := s.nationalize.Get(req.Name)
@@ -155,7 +165,9 @@ func (s *server) addHuman() http.HandlerFunc {
 			}
 			select {
 			case nationalityChan <- nationality:
+				s.logger.Info("nationalize Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
+				s.logger.Info("nationalize Get Timeout")
 				return
 			}
 		}()
@@ -170,18 +182,21 @@ func (s *server) addHuman() http.HandlerFunc {
 		select {
 		case human.Age = <-ageChan:
 		case <-ctx.Done():
+			s.logger.Warn("age timeout! Set default age")
 			human.Age = defaultAge
 		}
 
 		select {
 		case human.Gender = <-genderChan:
 		case <-ctx.Done():
+			s.logger.Warn("gender timeout! Set default gender")
 			human.Gender = defaultGender
 		}
 
 		select {
 		case human.Nationality = <-nationalityChan:
 		case <-ctx.Done():
+			s.logger.Warn("nationality timeout! Set default nationality")
 			human.Nationality = defaultNationality
 		}
 
@@ -190,11 +205,10 @@ func (s *server) addHuman() http.HandlerFunc {
 		err := s.store.Human().AddHuman(r.Context(), &human)
 		if err != nil {
 			s.logger.Error("failed to save human", zap.Error(err))
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, ErrJsonDecodeError, http.StatusInternalServerError)
 			return
 		}
 
-		// Send response
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(human); err != nil {
@@ -223,7 +237,6 @@ func (s *server) addHuman() http.HandlerFunc {
 // @Router /get_humans [get]
 func (s *server) getHumans() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Парсим параметры
 		q := r.URL.Query()
 		f := &model.HumanFilter{
 			Name:        q.Get("name"),
@@ -233,7 +246,6 @@ func (s *server) getHumans() http.HandlerFunc {
 			Nationality: q.Get("nationality"),
 		}
 
-		// Вспомогательная функция для int-параметров
 		parseInt := func(key string, dest *int) {
 			if s := q.Get(key); s != "" {
 				if v, err := strconv.Atoi(s); err == nil {
@@ -247,7 +259,6 @@ func (s *server) getHumans() http.HandlerFunc {
 		parseInt("page", &f.Page)
 		parseInt("page_size", &f.PageSize)
 
-		// Установим разумные дефолты, если не переданы
 		if f.Page < 1 {
 			f.Page = 1
 		}
@@ -258,7 +269,7 @@ func (s *server) getHumans() http.HandlerFunc {
 		humans, err := s.store.Human().GetHumans(r.Context(), f)
 		if err != nil {
 			s.logger.Error("failed to get humans", zap.Error(err))
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, ErrInternalServer, http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -289,12 +300,12 @@ func (s *server) deleteHuman() http.HandlerFunc {
 		}
 		req := deleteHumanRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, ErrJsonDecodeError, http.StatusBadRequest)
 			return
 		}
 		if err := s.store.Human().DeleteHuman(r.Context(), req.ID); err != nil {
 			s.logger.Error("failed to delete human", zap.Error(err))
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, ErrInternalServer, http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -321,7 +332,7 @@ func (s *server) updateHuman() http.HandlerFunc {
 		}
 		req := updateHumanRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, ErrJsonDecodeError, http.StatusBadRequest)
 			return
 		}
 
@@ -337,7 +348,7 @@ func (s *server) updateHuman() http.HandlerFunc {
 
 		if err := s.store.Human().UpdateHuman(r.Context(), &human); err != nil {
 			s.logger.Error("failed to update human", zap.Error(err))
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, ErrInternalServer, http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
