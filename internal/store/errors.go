@@ -1,8 +1,9 @@
 package store
 
-import "errors"
-
-var (
-	ErrHumanNotFound = errors.New("human not found")
-	ErrHumanExists   = errors.New("human exists")
-)
+//import "errors"
+//
+//var (
+//	ErrHumanNotFound = errors.New("human not found")
+//	ErrHumanExists   = errors.New("human exists")
+//)
+//todo
