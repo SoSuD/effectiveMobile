@@ -1,45 +1,41 @@
 package nationalize
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type Nationalize struct {
-	client  *http.Client
-	baseUrl string
+	client *resty.Client
 }
 
-func New() *Nationalize {
-	c := &Nationalize{}
-	c.baseUrl = "https://api.nationalize.io"
-	c.client = &http.Client{}
-	return c
+// New создаёт новый Nationalize-клиент
+func New(url string) *Nationalize {
+	return &Nationalize{
+		client: resty.New().
+			SetBaseURL(url).
+			SetHeader("Accept", "application/json"),
+	}
 }
 
 func (c *Nationalize) Get(name string) (Response, error) {
-	requrl := c.baseUrl + "/?name=" + name
-	req, err := http.NewRequest(http.MethodGet, requrl, nil)
+	var result Response
+
+	resp, err := c.client.R().
+		SetQueryParam("name", name).
+		SetResult(&result).
+		Get("/")
+
 	if err != nil {
-		return Response{}, fmt.Errorf("nationalize Get Error request: %w", err)
+		return Response{}, fmt.Errorf("nationalize Get error: %w", err)
 	}
-	res, err := c.client.Do(req)
-	if err != nil {
-		return Response{}, fmt.Errorf("nationalize Get Error request: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(res.Body)
+	if resp.IsError() {
 		return Response{}, fmt.Errorf(
-			"unexpected status %d: %s",
-			res.StatusCode, string(body),
+			"nationalize Get unexpected status %d: %s",
+			resp.StatusCode(), resp.String(),
 		)
 	}
-	var nationalizeResp Response
-	if err := json.NewDecoder(res.Body).Decode(&nationalizeResp); err != nil {
-		return Response{}, fmt.Errorf("decoding JSON: %w", err)
-	}
-	return nationalizeResp, nil
+
+	return result, nil
 }

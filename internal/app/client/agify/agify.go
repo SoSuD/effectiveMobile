@@ -1,45 +1,40 @@
 package agify
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"github.com/go-resty/resty/v2"
 )
 
 type Agify struct {
-	client  *http.Client
-	baseUrl string
+	client *resty.Client
 }
 
-func New() *Agify {
-	c := &Agify{}
-	c.baseUrl = "https://api.agify.io"
-	c.client = &http.Client{}
-	return c
+func New(url string) *Agify {
+	return &Agify{
+		client: resty.New().
+			SetBaseURL(url).
+			SetHeader("Accept", "application/json"),
+	}
 }
 
 func (c *Agify) Get(name string) (Response, error) {
-	requrl := c.baseUrl + "/?name=" + name
-	req, err := http.NewRequest(http.MethodGet, requrl, nil)
+	var result Response
+
+	resp, err := c.client.R().
+		SetQueryParam("name", name).
+		SetResult(&result).
+		Get("/")
+
 	if err != nil {
-		return Response{}, fmt.Errorf("agify Get Error request: %w", err)
+		return Response{}, fmt.Errorf("agify Get error: %w", err)
 	}
-	res, err := c.client.Do(req)
-	if err != nil {
-		return Response{}, fmt.Errorf("agify Get Error request: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(res.Body)
+
+	if resp.IsError() {
 		return Response{}, fmt.Errorf(
-			"unexpected status %d: %s",
-			res.StatusCode, string(body),
+			"agify Get unexpected status %d: %s",
+			resp.StatusCode(), resp.String(),
 		)
 	}
-	var agifyResp Response
-	if err := json.NewDecoder(res.Body).Decode(&agifyResp); err != nil {
-		return Response{}, fmt.Errorf("decoding JSON: %w", err)
-	}
-	return agifyResp, nil
+
+	return result, nil
 }
