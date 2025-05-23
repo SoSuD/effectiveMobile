@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"context"
 	"effectiveMobile/internal/model"
+	"effectiveMobile/internal/store"
 	"fmt"
 	"strings"
 )
@@ -21,19 +22,45 @@ func (h *HumanRepository) AddHuman(ctx context.Context, human *model.Human) erro
 }
 
 func (h *HumanRepository) DeleteHuman(ctx context.Context, id int) error {
-	query := `DELETE FROM people WHERE id = $1`
-	_, err := h.store.db.Exec(ctx, query, id)
+	const query = `
+        DELETE FROM people
+         WHERE id = $1
+    `
+	tag, err := h.store.db.Exec(ctx, query, id)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrHumanNotFound
 	}
 	return nil
 }
 
 func (h *HumanRepository) UpdateHuman(ctx context.Context, human *model.Human) error {
-	query := `UPDATE people SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6 WHERE id = $7`
-	_, err := h.store.db.Exec(ctx, query, human.Name, human.Surname, human.Patronymic, human.Age, human.Gender, human.Nationality, human.Id)
+	const query = `
+        UPDATE people
+           SET name        = $1,
+               surname     = $2,
+               patronymic  = $3,
+               age         = $4,
+               gender      = $5,
+               nationality = $6
+         WHERE id = $7
+    `
+	tag, err := h.store.db.Exec(ctx, query,
+		human.Name,
+		human.Surname,
+		human.Patronymic,
+		human.Age,
+		human.Gender,
+		human.Nationality,
+		human.Id,
+	)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrHumanNotFound
 	}
 	return nil
 }
