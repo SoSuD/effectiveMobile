@@ -1,3 +1,0 @@
-DROP TABLE IF EXISTS people;
-
-DROP TYPE IF EXISTS gender_type;
