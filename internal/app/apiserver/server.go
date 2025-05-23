@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
@@ -43,7 +44,12 @@ type server struct {
 }
 
 func newServer(store store.Store, config *Config) *server {
-	logger, err := zap.NewDevelopment()
+	lvl, err := zapcore.ParseLevel(config.Zap.Level)
+	if err != nil {
+		panic(err)
+	}
+	logger, err := zap.NewDevelopment(zap.IncreaseLevel(lvl))
+
 	if err != nil {
 		panic(err)
 	}
