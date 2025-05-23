@@ -15,12 +15,13 @@ import (
 	"effectiveMobile/internal/model"
 	"effectiveMobile/internal/store"
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -82,7 +83,7 @@ func (s *server) addHuman() http.HandlerFunc {
 			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
 			return
 		}
-		req := addHumanRequest{}
+		var req addHumanRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			s.logger.Info("error decoding request", zap.Error(err))
 			http.Error(w, ErrJsonDecodeError, http.StatusBadRequest)
@@ -92,118 +93,98 @@ func (s *server) addHuman() http.HandlerFunc {
 			http.Error(w, ErrNameAndSurnameRequired, http.StatusBadRequest)
 			return
 		}
+
 		human := model.Human{
 			Name:       req.Name,
 			Surname:    req.Surname,
 			Patronymic: req.Patronymic,
 		}
+
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
 
-		ageChan := make(chan int, 1)
-		genderChan := make(chan string, 1)
-		nationalityChan := make(chan string, 1)
+		g, ctx := errgroup.WithContext(ctx)
 
-		defaultAge := 0
-		defaultGender := "unknown"
-		defaultNationality := ""
+		var (
+			age         = 0
+			gender      = "unknown"
+			nationality = ""
+		)
 
-		var wg sync.WaitGroup
-		wg.Add(3)
-
-		go func() {
-			defer wg.Done()
+		// Запрос к Agify
+		g.Go(func() error {
 			resp, err := s.agify.Get(req.Name)
 			if err != nil {
 				s.logger.Error("agify Get Error", zap.Error(err))
-				ageChan <- defaultAge
-				return
+				return err
 			}
 			select {
-			case ageChan <- resp.Age:
-				s.logger.Info("agify Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
-				s.logger.Info("agify Get Timeout")
-				return
+				s.logger.Warn("agify Get Timeout")
+				return ctx.Err()
+			default:
+				age = resp.Age
+				s.logger.Info("agify Get Success", zap.Any("resp", resp))
+				return nil
 			}
-		}()
+		})
 
-		go func() {
-			defer wg.Done()
+		// Запрос к Genderize
+		g.Go(func() error {
 			resp, err := s.genderize.Get(req.Name)
 			if err != nil {
 				s.logger.Error("genderize Get Error", zap.Error(err))
-				genderChan <- defaultGender
-				return
-			}
-			gender := defaultGender
-			if resp.Gender == "male" {
-				gender = "male"
-			} else if resp.Gender == "female" {
-				gender = "female"
+				return err
 			}
 			select {
-			case genderChan <- gender:
-				s.logger.Info("genderize Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
 				s.logger.Info("genderize Get Timeout")
-				return
+				return ctx.Err()
+			default:
+				if resp.Gender == "male" || resp.Gender == "female" {
+					gender = resp.Gender
+				}
+				s.logger.Info("genderize Get Success", zap.Any("resp", resp))
+				return nil
 			}
-		}()
+		})
 
-		go func() {
-			defer wg.Done()
+		// Запрос к Nationalize
+		g.Go(func() error {
 			resp, err := s.nationalize.Get(req.Name)
 			if err != nil {
 				s.logger.Error("nationalize Get Error", zap.Error(err))
-				nationalityChan <- defaultNationality
-				return
-			}
-			nationality := defaultNationality
-			if len(resp.Country) > 0 {
-				nationality = resp.Country[0].CountryId
+				return err
 			}
 			select {
-			case nationalityChan <- nationality:
-				s.logger.Info("nationalize Get Success", zap.Any("resp", resp))
 			case <-ctx.Done():
 				s.logger.Info("nationalize Get Timeout")
-				return
+				return ctx.Err()
+			default:
+				if len(resp.Country) > 0 {
+					nationality = resp.Country[0].CountryId
+				}
+				s.logger.Info("nationalize Get Success", zap.Any("resp", resp))
+				return nil
 			}
-		}()
+		})
 
-		go func() {
-			wg.Wait()
-			close(ageChan)
-			close(genderChan)
-			close(nationalityChan)
-		}()
-
-		select {
-		case human.Age = <-ageChan:
-		case <-ctx.Done():
-			s.logger.Warn("age timeout! Set default age")
-			human.Age = defaultAge
+		// Ждём завершения всех горутин или таймаута
+		if err := g.Wait(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				s.logger.Warn("one or more services timed out")
+			} else {
+				s.logger.Error("Failed to send request", zap.Error(err))
+			}
 		}
 
-		select {
-		case human.Gender = <-genderChan:
-		case <-ctx.Done():
-			s.logger.Warn("gender timeout! Set default gender")
-			human.Gender = defaultGender
-		}
-
-		select {
-		case human.Nationality = <-nationalityChan:
-		case <-ctx.Done():
-			s.logger.Warn("nationality timeout! Set default nationality")
-			human.Nationality = defaultNationality
-		}
+		human.Age = age
+		human.Gender = gender
+		human.Nationality = nationality
 
 		s.logger.Info("added Human", zap.Any("human", human))
 
-		err := s.store.Human().AddHuman(r.Context(), &human)
-		if err != nil {
+		if err := s.store.Human().AddHuman(r.Context(), &human); err != nil {
 			s.logger.Error("failed to save human", zap.Error(err))
 			http.Error(w, ErrJsonDecodeError, http.StatusInternalServerError)
 			return
