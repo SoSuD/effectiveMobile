@@ -58,9 +58,9 @@ func newServer(store store.Store, config *Config) *server {
 		config:      config,
 		logger:      logger,
 		store:       store,
-		agify:       agify.New(),
-		genderize:   genderize.New(),
-		nationalize: nationalize.New(),
+		agify:       agify.New(config.ExternalService.AgifyURL),
+		genderize:   genderize.New(config.ExternalService.GenderizeURL),
+		nationalize: nationalize.New(config.ExternalService.NationalizeURL),
 	}
 }
 
