@@ -13,9 +13,21 @@ type Postgres struct {
 	URL string
 }
 
+type Zap struct {
+	Level string
+}
+
+type ExternalService struct {
+	AgifyURL       string
+	GenderizeURL   string
+	NationalizeURL string
+}
+
 type Config struct {
-	Server   Server
-	Postgres Postgres
+	Server          Server
+	Postgres        Postgres
+	Zap             Zap
+	ExternalService ExternalService
 }
 
 func NewConfig() *Config {
@@ -29,6 +41,14 @@ func NewConfig() *Config {
 		},
 		Postgres: Postgres{
 			URL: os.Getenv("DATABASE_URL"),
+		},
+		Zap: Zap{
+			Level: os.Getenv("ZAP_LEVEL"),
+		},
+		ExternalService: ExternalService{
+			AgifyURL:       os.Getenv("AGIFY_URL"),
+			GenderizeURL:   os.Getenv("GENDERIZE_URL"),
+			NationalizeURL: os.Getenv("NATIONALIZE_URL"),
 		},
 	}
 }
