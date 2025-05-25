@@ -84,7 +84,7 @@ func (s *server) configureRouter() {
 // @Success 201 {object} model.Human
 // @Failure 400 {object} string "name and surname required"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /add_human [put]
+// @Router /humans [put]
 func (s *server) addHuman() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
@@ -223,7 +223,7 @@ func (s *server) addHuman() http.HandlerFunc {
 // @Param page_size query int false "Page size"
 // @Success 200 {array} model.Human
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /get_humans [get]
+// @Router /humans [get]
 func (s *server) getHumans() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
@@ -254,6 +254,7 @@ func (s *server) getHumans() http.HandlerFunc {
 		if f.PageSize <= 0 || f.PageSize > 100 {
 			f.PageSize = 20
 		}
+		s.logger.Info("get humans", zap.Any("filter", f))
 
 		humans, err := s.store.Human().GetHumans(r.Context(), f)
 		if err != nil {
@@ -280,7 +281,7 @@ func (s *server) getHumans() http.HandlerFunc {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 415 {string} string "Unsupported Media Type"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /delete_human [delete]
+// @Router /humans [delete]
 func (s *server) deleteHuman() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
@@ -297,6 +298,7 @@ func (s *server) deleteHuman() http.HandlerFunc {
 			http.Error(w, ErrInternalServer, http.StatusInternalServerError)
 			return
 		}
+		s.logger.Info("deleted human", zap.Int("id", req.ID))
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -312,7 +314,7 @@ func (s *server) deleteHuman() http.HandlerFunc {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 415 {string} string "Unsupported Media Type"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /update_human [patch]
+// @Router /humans [patch]
 func (s *server) updateHuman() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
@@ -340,6 +342,7 @@ func (s *server) updateHuman() http.HandlerFunc {
 			http.Error(w, ErrInternalServer, http.StatusInternalServerError)
 			return
 		}
+		s.logger.Info("updated human", zap.Any("human", human))
 		w.WriteHeader(http.StatusOK)
 		return
 
