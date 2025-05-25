@@ -66,10 +66,12 @@ func newServer(store store.Store, config *Config) *server {
 
 func (s *server) configureRouter() {
 	s.router.Mount("/swagger", httpSwagger.WrapHandler)
-	s.router.Put("/add_human", s.addHuman())
-	s.router.Get("/get_humans", s.getHumans())
-	s.router.Delete("/delete_human", s.deleteHuman())
-	s.router.Patch("/update_human", s.updateHuman())
+	s.router.Route("/humans", func(r chi.Router) {
+		r.Get("/", s.getHumans())
+		r.Post("/", s.addHuman())
+		r.Delete("/", s.deleteHuman())
+		r.Patch("/", s.updateHuman())
+	})
 }
 
 // addHuman adds a new human record

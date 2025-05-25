@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"context"
 	"effectiveMobile/internal/model"
+	"effectiveMobile/internal/store"
 	"fmt"
 	"strings"
 )
@@ -12,7 +13,7 @@ type HumanRepository struct {
 }
 
 func (h *HumanRepository) AddHuman(ctx context.Context, human *model.Human) error {
-	query := `INSERT INTO people (name, surname, patronymic, age, gender, nationality) VALUES ($1, $2, $3, $4, $5, $6)`
+	const query = `INSERT INTO people (name, surname, patronymic, age, gender, nationality) VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err := h.store.db.Exec(ctx, query, human.Name, human.Surname, human.Patronymic, human.Age, human.Gender, human.Nationality)
 	if err != nil {
 		return err
@@ -21,19 +22,70 @@ func (h *HumanRepository) AddHuman(ctx context.Context, human *model.Human) erro
 }
 
 func (h *HumanRepository) DeleteHuman(ctx context.Context, id int) error {
-	query := `DELETE FROM people WHERE id = $1`
-	_, err := h.store.db.Exec(ctx, query, id)
+	const query = `
+        DELETE FROM people
+         WHERE id = $1
+    `
+	tag, err := h.store.db.Exec(ctx, query, id)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrHumanNotFound
 	}
 	return nil
 }
 
 func (h *HumanRepository) UpdateHuman(ctx context.Context, human *model.Human) error {
-	query := `UPDATE people SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6 WHERE id = $7`
-	_, err := h.store.db.Exec(ctx, query, human.Name, human.Surname, human.Patronymic, human.Age, human.Gender, human.Nationality, human.Id)
+	var (
+		setParts []string
+		args     []interface{}
+	)
+
+	if human.Name != "" {
+		args = append(args, human.Name)
+		setParts = append(setParts, fmt.Sprintf("name = $%d", len(args)))
+	}
+	if human.Surname != "" {
+		args = append(args, human.Surname)
+		setParts = append(setParts, fmt.Sprintf("surname = $%d", len(args)))
+	}
+	if human.Patronymic != "" {
+		args = append(args, human.Patronymic)
+		setParts = append(setParts, fmt.Sprintf("patronymic = $%d", len(args)))
+	}
+	if human.Age > 0 {
+		args = append(args, human.Age)
+		setParts = append(setParts, fmt.Sprintf("age = $%d", len(args)))
+	}
+	if human.Gender != "" {
+		args = append(args, human.Gender)
+		setParts = append(setParts, fmt.Sprintf("gender = $%d", len(args)))
+	}
+	if human.Nationality != "" {
+		args = append(args, human.Nationality)
+		setParts = append(setParts, fmt.Sprintf("nationality = $%d", len(args)))
+	}
+
+	if len(setParts) == 0 {
+		return store.ErrNothingToUpdate
+	}
+
+	args = append(args, human.Id)
+	idPosition := len(args)
+	query := fmt.Sprintf(
+		"UPDATE people SET %s WHERE id = $%d",
+		strings.Join(setParts, ", "),
+		idPosition,
+	)
+
+	// Выполняем запрос
+	tag, err := h.store.db.Exec(ctx, query, args...)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrHumanNotFound
 	}
 	return nil
 }
